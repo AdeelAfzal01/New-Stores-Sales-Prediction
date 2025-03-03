@@ -128,6 +128,8 @@ with right_col:
             # cumulative_competitors_3km = st.number_input('Cumulative Competitors 3km', min_value=0.0, format="%.1f")
             cumulative_competitors_3km = competitors_1km + competitors_3km
 
+
+
             input_df = pd.DataFrame({
                   "Store Internal Name": "NA",
                   "Province" : [province],
@@ -257,7 +259,7 @@ with right_col:
                                     "Store Name" : stores_name,
                                     "3 Months Cumulative Sales" : prediction_list
                               }
-                        ).reset_index(drop=True)
+                        ).reset_index()
                   )
                   
 
