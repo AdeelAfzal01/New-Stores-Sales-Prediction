@@ -1,3 +1,2 @@
 scikit-learn==1.5.2
-pandas
-pickle
+pandas==2.2.3
