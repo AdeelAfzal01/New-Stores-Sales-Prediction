@@ -19,7 +19,6 @@ with col_left:
       #  Input Fields
       input_method = st.radio("Choose Data Input Method:",("Manual Data Entry", "Upload Excel File"))
 
-
 ## Loading the serialized trained model
 model = pickle.load(open("Model_Experiment_04.pkl", 'rb'))
 
@@ -247,19 +246,23 @@ with right_col:
             prediction = model.predict(processed_data)
 
             # Display the prediction
-            st.subheader('Prediction')
+            st.header('Prediction')
             if input_df.shape[0]==1:
                   st.write(f'3 Months Cumulative Sales: {prediction[0]:.2f}')
 
             elif input_df.shape[0]>1:
                   prediction_list = [int(pre) for pre in prediction.tolist()]
-                  st.write(
-                        pd.DataFrame(
-                              {
-                                    "Store Name" : stores_name,
-                                    "3 Months Cumulative Sales" : prediction_list
-                              }
-                        ).reset_index()
-                  )
+                  prediction_df = pd.DataFrame({
+                              "Store Name" : stores_name,
+                              "3 Months Cumulative Sales" : prediction_list}).reset_index(drop=True)
                   
+                  st.subheader("Prediction Table")
+                  with st.container(border=True):
+                        st.write(prediction_df)
 
+                  # st.divider()
+                  # st.balloons()
+
+                  st.subheader("Predictions Line Chart")
+                  with st.container(border=True):
+                        st.line_chart(prediction_df, x='Store Name', y='3 Months Cumulative Sales')
