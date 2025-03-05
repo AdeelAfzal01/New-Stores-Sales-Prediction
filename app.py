@@ -256,13 +256,13 @@ with right_col:
                               "Store Name" : stores_name,
                               "3 Months Cumulative Sales" : prediction_list}).sort_values(by='Store Name').reset_index(drop=True)
                   
-                  st.subheader("Predictions Table")
+                  st.subheader("Predictions Table 🏪")
                   with st.container(border=True):
                         st.write(prediction_df)
 
                   # st.divider()
                   # st.balloons()
 
-                  st.subheader("Predictions Line Chart")
+                  st.subheader("Predictions Line Chart 📈")
                   with st.container(border=True):
                         st.line_chart(prediction_df, x='Store Name', y='3 Months Cumulative Sales', height=500)
