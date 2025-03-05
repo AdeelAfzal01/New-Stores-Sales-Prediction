@@ -3,7 +3,7 @@ import streamlit as st
 import numpy as np
 import pickle 
 import sklearn
-import pickle
+import os
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -16,7 +16,6 @@ st.set_page_config(layout="wide")
 col_left, right_col = st.columns([1,4])
 
 with col_left:
-      #  Input Fields
       input_method = st.radio("Choose Data Input Method:",("Manual Data Entry", "Upload Excel File"))
 
 ## Loading the serialized trained model
@@ -24,6 +23,7 @@ model = pickle.load(open("Model_Experiment_04.pkl", 'rb'))
 
 ## Loading the serialized scikit learn pipeline
 pipeline = pickle.load(open("Pipeline_Experiment_04.pkl", 'rb'))
+
 
 with right_col:
       ## App main page title
@@ -246,7 +246,7 @@ with right_col:
             prediction = model.predict(processed_data)
 
             # Display the prediction
-            st.header('Prediction')
+            # st.header('Prediction')
             if input_df.shape[0]==1:
                   st.write(f'3 Months Cumulative Sales: {prediction[0]:.2f}')
 
@@ -254,9 +254,9 @@ with right_col:
                   prediction_list = [int(pre) for pre in prediction.tolist()]
                   prediction_df = pd.DataFrame({
                               "Store Name" : stores_name,
-                              "3 Months Cumulative Sales" : prediction_list}).reset_index(drop=True)
+                              "3 Months Cumulative Sales" : prediction_list}).sort_values(by='Store Name').reset_index(drop=True)
                   
-                  st.subheader("Prediction Table")
+                  st.subheader("Predictions Table")
                   with st.container(border=True):
                         st.write(prediction_df)
 
@@ -265,4 +265,4 @@ with right_col:
 
                   st.subheader("Predictions Line Chart")
                   with st.container(border=True):
-                        st.line_chart(prediction_df, x='Store Name', y='3 Months Cumulative Sales')
+                        st.line_chart(prediction_df, x='Store Name', y='3 Months Cumulative Sales', height=500)
