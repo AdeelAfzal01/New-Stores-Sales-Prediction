@@ -36,7 +36,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         return self  
 
     def transform(self, X, y=None):
-        X = X.copy()
+        # X = X.copy()
         return X[self.selected_features + self.target_cols]  # Select only the specified columns
     
 class StandarizeParking(BaseEstimator, TransformerMixin):
@@ -282,4 +282,4 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
 
         return X
 
-  
+        

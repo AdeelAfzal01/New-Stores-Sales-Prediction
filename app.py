@@ -3,6 +3,7 @@ import streamlit as st
 import numpy as np
 import pickle 
 import sklearn
+import altair as alt
 import os
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, KernelPCA
@@ -13,16 +14,16 @@ from utils import ImputeMissingValues, FeatureSelector, StandarizeParking, MapCo
       OutlierRemover, CustomScaler, FeatureEngineeringTransformer
 
 st.set_page_config(layout="wide")
-col_left, right_col = st.columns([1,4])
+col_left, right_col = st.columns([1,5])
 
 with col_left:
       input_method = st.radio("Choose Data Input Method:",("Manual Data Entry", "Upload Excel File"))
 
 ## Loading the serialized trained model
-model = pickle.load(open("Model_Experiment_04.pkl", 'rb'))
+model = pickle.load(open("Experiment 29 Model.pkl", 'rb'))
 
 ## Loading the serialized scikit learn pipeline
-pipeline = pickle.load(open("Pipeline_Experiment_04.pkl", 'rb'))
+pipeline = pickle.load(open("Experiment 29 Pipeline.pkl", 'rb'))
 
 
 with right_col:
@@ -222,6 +223,11 @@ with right_col:
                   if not 'Store Internal Name' in input_df.columns:
                         input_df['Store Internal Name'] = "NA"
 
+                  for col in input_df.columns:
+                        if 'parking' in col.lower():
+                              input_df.rename(columns={col : 'Parking'}, inplace=True)
+                              break
+
                   for col in pipeline_columns:
                         if col not in input_df.columns:
                               input_df[col] = 0
@@ -232,8 +238,8 @@ with right_col:
 
       if st.button("Predict"):
 
-            # Save the Stores Names
-            stores_name = input_df['Store Internal Name']
+      # Save the Stores Names
+            stores_name = input_df['Store Internal Name'].tolist()
 
             # Preprocess the input data
             processed_data = pipeline.transform(input_df)            
@@ -245,24 +251,88 @@ with right_col:
             # Make prediction
             prediction = model.predict(processed_data)
 
-            # Display the prediction
-            # st.header('Prediction')
-            if input_df.shape[0]==1:
-                  st.write(f'3 Months Cumulative Sales: {prediction[0]:.2f}')
-
-            elif input_df.shape[0]>1:
-                  prediction_list = [int(pre) for pre in prediction.tolist()]
+            if input_df.shape[0] == 1:
+                  # st.subheader("Predictions for Store 🏪")
                   prediction_df = pd.DataFrame({
-                              "Store Name" : stores_name,
-                              "3 Months Cumulative Sales" : prediction_list}).sort_values(by='Store Name').reset_index(drop=True)
-                  
-                  st.subheader("Predictions Table 🏪")
-                  with st.container(border=True):
-                        st.write(prediction_df)
+                        "3 Months Cumulative Sales": [prediction[0][0]], 
+                        "6 Months Cumulative Sales": [prediction[0][1]],
+                        "9 Months Cumulative Sales": [prediction[0][2]],
+                        "12 Months Cumulative Sales": [prediction[0][3]]
+                        }).astype(int)
 
-                  # st.divider()
-                  # st.balloons()
+            elif input_df.shape[0] > 1:
 
-                  st.subheader("Predictions Line Chart 📈")
+                  # Create prediction DataFrame
+                  pred3 = []
+                  pred6 = []
+                  pred9 = []
+                  pred12 = []
+                  for row in prediction:
+                        pred3.append(row[0])
+                        pred6.append(row[1])
+                        pred9.append(row[2])
+                        pred12.append(row[3])
+                  prediction_df = pd.DataFrame({
+                        "3 Months Cumulative Sales": pred3, 
+                        "6 Months Cumulative Sales": pred6,
+                        "9 Months Cumulative Sales": pred9,
+                        "12 Months Cumulative Sales": pred12
+                        }).astype(int)
+            prediction_df.insert(0, "Store Name", stores_name)
+            prediction_df = prediction_df.sort_values(by="Store Name").reset_index(drop=True)
+
+            st.subheader("Predictions Table 🏪")
+            with st.container(border=True):
+                  st.write(prediction_df)
+
+            # Show individual line charts
+            st.subheader("Individual Store Line Charts 📈")
+            for idx, row in prediction_df.iterrows():
+                  store_name = row["Store Name"]
+                  sales_data = pd.DataFrame({
+                  "Month": ["3 Months", "6 Months", "9 Months", "12 Months"],
+                  "Cumulative Sales": [row["3 Months Cumulative Sales"],
+                                          row["6 Months Cumulative Sales"],
+                                          row["9 Months Cumulative Sales"],
+                                          row["12 Months Cumulative Sales"]]
+                  })
+
+                  sales_data["Month"] = pd.Categorical(
+                        sales_data["Month"],
+                        categories=["3 Months", "6 Months", "9 Months", "12 Months"],
+                        ordered=True
+                  )
+
+                  # Altair line chart with point labels
+                  chart = alt.Chart(sales_data).mark_line(point=True).encode(
+                                          x=alt.X("Month", 
+                                                      sort=["3 Months", "6 Months", "9 Months", "12 Months"], 
+                                                      axis=alt.Axis(labelAngle=0)),
+                                          y="Cumulative Sales"
+                  ).properties(
+                        height=400,
+                        title=store_name
+                  )
+
+                  # Add text labels on each point
+                  text = chart.mark_text(
+                        align='right',
+                        baseline='bottom',
+                        dx=-10,  # Shift text to the right of the point
+                        size=12
+                  ).encode(
+                        text="Cumulative Sales"
+                  )
+
+                  # Combine and configure title style
+                  final_chart = (chart + text).configure_title(
+                        fontSize=20,
+                        font='Helvetica-Bold',
+                        anchor='middle'
+                  ).configure_axis(
+                        labelFontSize=10,
+                        titleFontSize=12
+    )
+
                   with st.container(border=True):
-                        st.line_chart(prediction_df, x='Store Name', y='3 Months Cumulative Sales', height=500)
+                        st.altair_chart(final_chart + text, use_container_width=True)
