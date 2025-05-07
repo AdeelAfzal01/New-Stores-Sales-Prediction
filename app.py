@@ -5,6 +5,7 @@ import pickle
 import sklearn
 import altair as alt
 import os
+import base64
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -13,8 +14,26 @@ from sklearn.impute import SimpleImputer
 from utils import ImputeMissingValues, FeatureSelector, StandarizeParking, MapColumns, KernelPCAFeatureSelection,\
       OutlierRemover, CustomScaler, FeatureEngineeringTransformer
 
+
+
 st.set_page_config(layout="wide")
+
+## Add logo
+
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
+logo_base64 = get_base64_image("Logo Updated.png")
+
+st.markdown(f"""
+    <div style='text-align: center; margin-bottom: 20px;'>
+        <img src='data:image/png;base64,{logo_base64}' width='150'/>
+    </div>
+""", unsafe_allow_html=True)
+
 col_left, right_col = st.columns([1,5])
+
 
 with col_left:
       input_method = st.radio("Choose Data Input Method:",("Manual Data Entry", "Upload Excel File"))
