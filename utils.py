@@ -6,6 +6,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 
 # Custom Transformer for Imputation
+# Custom Transformer for Imputation
 class ImputeMissingValues(BaseEstimator, TransformerMixin):
     def __init__(self, num_columns, cat_columns):
         self.num_columns = num_columns
@@ -60,15 +61,22 @@ class StandarizeParking(BaseEstimator, TransformerMixin):
             elif 'street' in value:
                 return 'street'  
         return 'unknown'
-    
+   
 class MapColumns(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.binary_mapping = {'No': 0, 'Yes': 1}
         self.parking_mapping = {'no parking': 0, 'street': 1, 'parking': 2}
         self.province_mapping =  {'Saskatchewan': 1, 'Alberta': 2, 'British Columbia': 3, 'Manitoba': 4, 'Ontario': 5}
+        self.locale_mapping = {'Rural': 1, 'Urban': 2, 'Suburban': 3}
+        # self.locale_mapping = {'Rural': 1445502, 'Urban': 1937581, 'Suburban': 2281160}        
         self.default_value = -1
+        self.encoder_locale = OneHotEncoder(sparse_output=False, handle_unknown='ignore', drop='first')
+        self.encoder_province = OneHotEncoder(sparse_output=False, handle_unknown='ignore', drop='first')
+
 
     def fit(self, X, y=None):
+        # self.encoder_locale.fit(X[['Locale Type']])
+        # self.encoder_province.fit(X[['Province']])
         return self
     
     def transform(self, X, y=None):
@@ -79,6 +87,19 @@ class MapColumns(BaseEstimator, TransformerMixin):
         X['Gas Station'] = X['Gas Station'].map(lambda val: self.binary_mapping.get(val, self.default_value))
         X['Parking'] = X['Parking'].map(lambda val: self.parking_mapping.get(val, self.default_value))
         X['Province'] = X['Province'].map(lambda val: self.province_mapping.get(val, self.default_value))
+        X['Locale Type'] = X['Locale Type'].map(lambda val: self.locale_mapping.get(val, self.default_value))
+
+        # one_hot_encoded_province = self.encoder_province.transform(X[['Province']])
+        # one_hot_df_province = pd.DataFrame(one_hot_encoded_province,
+        #                         columns=self.encoder_province.get_feature_names_out()).astype(int)
+        # X = pd.concat([X.reset_index(drop=True), one_hot_df_province.reset_index(drop=True)], axis=1)
+        # X = X.drop(['Province'], axis=1)
+        
+        # one_hot_encoded = self.encoder_locale.transform(X[['Locale Type']])
+        # one_hot_df = pd.DataFrame(one_hot_encoded,
+        #                         columns=self.encoder_locale.get_feature_names_out()).astype(int)
+        # X = pd.concat([X.reset_index(drop=True), one_hot_df.reset_index(drop=True)], axis=1)
+        # X = X.drop(['Locale Type'], axis=1)
         return X
     
 class KernelPCAFeatureSelection(BaseEstimator, TransformerMixin):
@@ -90,12 +111,13 @@ class KernelPCAFeatureSelection(BaseEstimator, TransformerMixin):
         self.pca = KernelPCA(n_components=self.n_components, kernel=self.kernel)
 
     def fit(self, X, y=None):
-        self.pca.fit(X.drop(self.target_cols + self.non_similar_cols, axis=1))
+        # self.pca.fit(X.drop(self.target_cols + self.non_similar_cols, axis=1))
+        self.pca.fit(X.drop(self.target_cols, axis=1))
         return self
 
     def transform(self, X, y=None):
         X = X.copy()
-        pca_data = self.pca.transform(X.drop(self.target_cols + self.non_similar_cols, axis=1))
+        pca_data = self.pca.transform(X.drop(self.target_cols, axis=1))
         pca_df = pd.DataFrame(pca_data, columns=self.pca.get_feature_names_out().tolist())
         pca_df[self.target_cols] = X[self.target_cols]
         return pca_df.reset_index(drop=True)
@@ -175,9 +197,9 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
         
         # 1. Aggregation Features
-        X['Total Population Mean'] = X[['2023 Total Population 1km', 
-                                         '2023 Total Population 3km', 
-                                         '2023 Total Population 5km']].mean(axis=1)
+        # X['Total Population Mean'] = X[['2023 Total Population 1km', 
+        #                                  '2023 Total Population 3km', 
+        #                                  '2023 Total Population 5km']].mean(axis=1)
 
         X['Daytime Population Range'] = X[['2023 Daytime Population 1km', 
                                            '2023 Daytime Population 3km', 
@@ -187,15 +209,15 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
                                             '2023 Daytime Population 5km']].min(axis=1)
 
         # 2. Ratios and Percentages
-        X['Male-to-Female Ratio 1km'] = X['2023 Male Population 20 to 24 Years 1km'] / \
-                                        (X['2023 Female Population 20 to 24 Years 1km'] + 1e-9)
+        # X['Male-to-Female Ratio 1km'] = X['2023 Male Population 20 to 24 Years 1km'] / \
+        #                                 (X['2023 Female Population 20 to 24 Years 1km'] + 1e-9)
 
-        X['Young Adult Ratio 1km'] = (X['2023 Male Population 20 to 24 Years 1km'] + 
-                                      X['2023 Female Population 20 to 24 Years 1km']) / \
-                                     (X['2023 Total Population 1km'] + 1e-9)
+        # X['Young Adult Ratio 1km'] = (X['2023 Male Population 20 to 24 Years 1km'] + 
+        #                               X['2023 Female Population 20 to 24 Years 1km']) / \
+        #                              (X['2023 Total Population 1km'] + 1e-9)
 
-        X['Daytime-to-Total Population Ratio 1km'] = X['2023 Daytime Population 1km'] / \
-                                                     (X['2023 Total Population 1km'] + 1e-9)
+        # X['Daytime-to-Total Population Ratio 1km'] = X['2023 Daytime Population 1km'] / \
+        #                                              (X['2023 Total Population 1km'] + 1e-9)
 
         X['Income per Capita 1km'] = X['2023 Median Household Income 1km'] / \
                                      (X['2023 Total Population 1km'] + 1e-9)
@@ -208,11 +230,11 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
         X['Income Tier'] = X['Income Tier'].fillna(0)
         X['Income Tier'] = X['Income Tier'].astype(int)
 
-        X['Population Density Category'] = pd.cut(X['2023 Total Population 1km'], bins=[0, 1000, 5000, np.inf], 
-                                                  labels=['Low', 'Medium', 'High'])
-        X['Population Density Category'] = X['Population Density Category'].map(income_mapping)
-        X['Population Density Category'] = X['Population Density Category'].fillna(0)
-        X['Population Density Category'] = X['Population Density Category'].astype(int)
+        # X['Population Density Category'] = pd.cut(X['2023 Total Population 1km'], bins=[0, 1000, 5000, np.inf], 
+        #                                           labels=['Low', 'Medium', 'High'])
+        # X['Population Density Category'] = X['Population Density Category'].map(income_mapping)
+        # X['Population Density Category'] = X['Population Density Category'].fillna(0)
+        # X['Population Density Category'] = X['Population Density Category'].astype(int)
 
         # Weighted Average
         X['Weighted 2023 Total Population'] = (0.5 * X['2023 Total Population 1km'] + 
@@ -247,9 +269,9 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
                                     0.3 * X['2023 Tobacco Products, Alcoholic Beverages 3km'] + 
                                     0.2 * X['2023 Tobacco Products, Alcoholic Beverages 5km'])
 
-        X['Weighted 2023 - Dominant PRIZM Segment Number'] = (0.5 * X['2023 - Dominant PRIZM Segment Number 1km'] + 
-                                    0.3 * X['2023 - Dominant PRIZM Segment Number 3km'] + 
-                                    0.2 * X['2023 - Dominant PRIZM Segment Number 5km'])
+        # X['Weighted 2023 - Dominant PRIZM Segment Number'] = (0.5 * X['2023 - Dominant PRIZM Segment Number 1km'] + 
+        #                             0.3 * X['2023 - Dominant PRIZM Segment Number 3km'] + 
+        #                             0.2 * X['2023 - Dominant PRIZM Segment Number 5km'])
 
         X['Weighted 2023 Male Population 20 to 24 Years'] = (0.5 * X['2023 Male Population 20 to 24 Years 1km'] + 
                                     0.3 * X['2023 Male Population 20 to 24 Years 3km'] + 
@@ -274,6 +296,66 @@ class FeatureEngineeringTransformer(BaseEstimator, TransformerMixin):
         X['Weighted 2023 Female Population 30 to 34 Years'] = (0.5 * X['2023 Female Population 30 to 34 Years 1km'] + 
                                     0.3 * X['2023 Female Population 30 to 34 Years 3km'] + 
                                     0.2 * X['2023 Female Population 30 to 34 Years 5km'])
+        ## Latest Addition
+        X['Young_Adults_Ratio_3km'] = (X['2023 Male Population 20 to 24 Years 3km'] + X['2023 Female Population 20 to 24 Years 3km']) / X['2023 Total Population 3km']
+
+        X['Age_25_34_Ratio_1km'] = (X['2023 Male Population 25 to 29 Years 1km'] + X['2023 Female Population 25 to 29 Years 1km'] +
+                                    X['2023 Male Population 30 to 34 Years 1km'] + X['2023 Female Population 30 to 34 Years 1km']) / X['2023 Total Population 1km']
+
+        X['Age_25_34_Ratio_1km'] = X['Age_25_34_Ratio_1km'].fillna(0)
+
+        X['Population_per_Store'] = X['2023 Total Population 1km'] / (X['Stores'] + 1)
+        X['Population_per_Bank'] = X['2023 Total Population 1km'] / (X['Banks'] + 1)
+
+        X['Comp_1km_to_Pop'] = X['1km Competitors'] / (X['2023 Total Population 1km'] + 1)
+        X['Comp_3km_to_Pop'] = X['3km Competitors'] / (X['2023 Total Population 3km'] + 1)
+
+
+        X['Amenity_Score'] = (
+            (X['Restaurant'] > 0).astype(int) + (X['Stores'] > 0).astype(int) +
+            (X['Banks'] > 0).astype(int) + (X['Offices'] > 0).astype(int) +
+            (X['Grocery Stores'] > 0).astype(int) + (X['Gas Station'] > 0).astype(int) +
+            (X['Parking'] > 0).astype(int)
+        )
+
+        X['Crowd_Visibility_Interaction'] = X['Crowd_score'] * X['Visibility_score']
+
+        # X['Pop_per_sqft'] = X['Weighted 2023 Total Population'] / X['Square Footage']
+        X['Pop_per_sqft'] = X['Weighted 2023 Total Population'] / X['Square Footage']
+        X['DaytimePop_per_sqft'] = X['Weighted 2023 Daytime Population'] / X['Square Footage']
+
+        X['Income_per_sqft'] = X['Weighted 2023 Median Household Income'] / X['Square Footage']
+
+        X['Competitor_1km_per_sqft'] = X['1km Competitors'] / X['Square Footage']
+        X['Competitor_3km_per_sqft'] = X['3km Competitors'] / X['Square Footage']
+        X['Amenity_per_sqft'] = X['Amenity_Score'] / X['Square Footage']
+
+        X['Crowd_per_sqft'] = X['Crowd_score'] / X['Square Footage']
+        X['Visibility_per_sqft'] = X['Visibility_score'] / X['Square Footage']
+
+        X['YoungAdults_per_sqft'] = (
+            X['Weighted 2023 Male Population 25 to 29 Years'] +
+            X['Weighted 2023 Male Population 30 to 34 Years'] +
+            X['Weighted 2023 Female Population 25 to 29 Years'] +
+            X['Weighted 2023 Female Population 30 to 34 Years']
+        ) / X['Square Footage']
+
+        X = X.drop(['2023 Total Population 1km', '2023 Total Population 3km', '2023 Total Population 5km',
+        '2023 Total Population Median Age 1km', '2023 Total Population Median Age 3km', '2023 Total Population Median Age 5km',
+        '2023 Daytime Population 1km', '2023 Daytime Population 3km', '2023 Daytime Population 5km',
+        '2023 Median Household Income 1km', '2023 Median Household Income 3km', '2023 Median Household Income 5km',
+        '2023 Occupations Unique to Manufacture and Utilities 1km', '2023 Occupations Unique to Manufacture and Utilities 3km', '2023 Occupations Unique to Manufacture and Utilities 5km',
+        '2023 Occupations in Trades, Transport, Operators 1km', '2023 Occupations in Trades, Transport, Operators 3km', '2023 Occupations in Trades, Transport, Operators 5km',
+        '2023 Occupation Management 1km', '2023 Occupation Management 3km', '2023 Occupation Management 5km',
+        '2023 Tobacco Products, Alcoholic Beverages 1km', '2023 Tobacco Products, Alcoholic Beverages 3km', '2023 Tobacco Products, Alcoholic Beverages 5km',
+        '2023 - Dominant PRIZM Segment Number 1km', '2023 - Dominant PRIZM Segment Number 3km', '2023 - Dominant PRIZM Segment Number 5km',
+        '2023 Male Population 20 to 24 Years 1km', '2023 Male Population 20 to 24 Years 3km', '2023 Male Population 20 to 24 Years 5km',
+        '2023 Male Population 25 to 29 Years 1km', '2023 Male Population 25 to 29 Years 3km', '2023 Male Population 25 to 29 Years 5km',
+        '2023 Male Population 30 to 34 Years 1km', '2023 Male Population 30 to 34 Years 3km', '2023 Male Population 30 to 34 Years 5km',
+        '2023 Female Population 20 to 24 Years 1km', '2023 Female Population 20 to 24 Years 3km', '2023 Female Population 20 to 24 Years 5km',
+        '2023 Female Population 25 to 29 Years 1km', '2023 Female Population 25 to 29 Years 3km', '2023 Female Population 25 to 29 Years 5km',
+        '2023 Female Population 30 to 34 Years 1km', '2023 Female Population 30 to 34 Years 3km', '2023 Female Population 30 to 34 Years 5km',
+        'Square Footage'], axis=1)
         
         X['3 Months Cumulative Sales'] = X['3 Months Cumulative Sales'].astype(int)
         X['6 Months Cumulative Sales'] = X['6 Months Cumulative Sales'].astype(int)

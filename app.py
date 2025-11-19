@@ -39,10 +39,10 @@ with col_left:
       input_method = st.radio("Choose Data Input Method:",("Manual Data Entry", "Upload Excel File"))
 
 ## Loading the serialized trained model
-model = pickle.load(open("Experiment 29 Model.pkl", 'rb'))
+model = pickle.load(open("Latest Best NN Model.pkl", 'rb'))
 
 ## Loading the serialized scikit learn pipeline
-pipeline = pickle.load(open("Experiment 29 Pipeline.pkl", 'rb'))
+pipeline = pickle.load(open("Latest Best NN Pipeline.pkl", 'rb'))
 
 
 with right_col:
@@ -147,6 +147,13 @@ with right_col:
             # cumulative_competitors_3km = st.number_input('Cumulative Competitors 3km', min_value=0.0, format="%.1f")
             cumulative_competitors_3km = competitors_1km + competitors_3km
 
+            ## Square Footage	
+            square_footage = st.number_input('Square Footage', min_value=0.0, format="%.1f")
+
+            # Locale Type
+            locale_type = st.selectbox('Locale Type', ['Rural', 'Suburban', 'Urban'])
+
+
 
 
             input_df = pd.DataFrame({
@@ -209,6 +216,8 @@ with right_col:
                   "1km Competitors":[competitors_1km],	
                   "3km Competitors":[competitors_3km],	
                   "Cumulative 3km Competitors":[cumulative_competitors_3km],
+                  "Square Footage":[square_footage],
+                  "Locale Type":[locale_type],
                   '3 Months Cumulative Sales':[0],
                   '6 Months Cumulative Sales':[0], 
                   '9 Months Cumulative Sales':[0], 
@@ -235,7 +244,21 @@ with right_col:
                               '2023 Female Population 25 to 29 Years 5km', '2023 Female Population 30 to 34 Years 1km', '2023 Female Population 30 to 34 Years 3km',
                               '2023 Female Population 30 to 34 Years 5km', 'Restaurant', 'Stores', 'Banks', 'Offices', 'Crowd_score', 'Visibility_score',
                               'Grocery Stores', 'Parking', 'Gas Station', '1km Competitors', '3km Competitors', 'Cumulative 3km Competitors',
+                              "Square Footage","Locale Type",
                               '3 Months Cumulative Sales', '6 Months Cumulative Sales', '9 Months Cumulative Sales', '12 Months Cumulative Sales']
+            
+            selected_columns = ['Age_25_34_Ratio_1km', 'Weighted 2023 Female Population 25 to 29 Years', 'Income Tier',
+                              'Weighted 2023 Occupations in Trades, Transport, Operators', 'Restaurant', 'Stores', 'YoungAdults_per_sqft',
+                              'Gas Station', 'Weighted 2023 Total Population Median Age', 'Locale Type', 'Amenity_per_sqft', 'Province',
+                              'Daytime Population Range', 'Weighted 2023 Median Household Income', 'Income_per_sqft', 'Banks', 'Offices',
+                              'Grocery Stores', 'Young_Adults_Ratio_3km', 'Weighted 2023 Occupation Management', 'Crowd_score',
+                              'Weighted 2023 Female Population 30 to 34 Years', 'Crowd_per_sqft', 'Visibility_score',
+                              'Weighted 2023 Female Population 20 to 24 Years', 'Pop_per_sqft', 'Amenity_Score', 'DaytimePop_per_sqft',
+                              'Weighted 2023 Total Population', 'Weighted 2023 Daytime Population', 'Comp_1km_to_Pop',
+                              'Weighted 2023 Male Population 20 to 24 Years', 'Weighted 2023 Tobacco Products, Alcoholic Beverages',
+                              'Income per Capita 1km', 'Cumulative 3km Competitors', 'Visibility_per_sqft', 'Population_per_Bank',
+                              'Crowd_Visibility_Interaction', 'Parking', 'Competitor_3km_per_sqft', 'Comp_3km_to_Pop']
+
             
             if uploaded_file is not None:
                   input_df = pd.read_excel(uploaded_file, index_col=0)
@@ -268,7 +291,7 @@ with right_col:
             processed_data.drop(target_cols, axis=1, inplace=True)
 
             # Make prediction
-            prediction = model.predict(processed_data)
+            prediction = model.predict(processed_data[selected_columns])
 
             if input_df.shape[0] == 1:
                   # st.subheader("Predictions for Store 🏪")
@@ -338,7 +361,8 @@ with right_col:
                         align='right',
                         baseline='bottom',
                         dx=-10,  # Shift text to the right of the point
-                        size=12
+                        size=12,
+                        color='yellow'
                   ).encode(
                         text="Cumulative Sales"
                   )
